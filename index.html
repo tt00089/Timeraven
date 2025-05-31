@@ -116,11 +116,11 @@ let sugg=[
   {id:uid(),date:today(),start:"10:15",end:"11:45",desc:"Code review",proj:"Internal",rate:0,bill:false},
   {id:uid(),date:today(),start:"13:00",end:"14:30",desc:"Sprint planning",proj:"Beta",rate:110,bill:true}
 ];
-let appr=[],rej[],editState=null;
+let appr=[],rej=[],editState=null;
 
 /* ----- HTML-rivin rakentaja ----- */
 function line(e,blk){
- const h=diffH(e.start,e.end),€=euro(h,e.rate,e.bill).toFixed(0);
+ const h=diffH(e.start,e.end),eur=euro(h,e.rate,e.bill).toFixed(0);
  const btns= blk==='s'
  ?`<button class="accept act" onclick="mv('s','a','${e.id}')">Accept</button>
     <button class="reject act" onclick="mv('s','r','${e.id}')">Reject</button>`
@@ -131,7 +131,7 @@ function line(e,blk){
     <button class="accept act" onclick="mv('r','a','${e.id}')">Accept</button>`;
  return `<li class=item><div class=row>
   <span style="flex:1">${e.start}-${e.end} • ${h.toFixed(1)}h • ${e.desc}
-    <span class="tag">${e.proj}</span>${e.bill?`<span class="tag bill">€${€}</span>`:''}</span>
+    <span class="tag">${e.proj}</span>${e.bill?`<span class="tag bill">€${eur}</span>`:''}</span>
   <span class=row>
     ${btns}
     <button class="edit" onclick="edit('${blk}','${e.id}')">✏️</button>
@@ -147,20 +147,21 @@ function renderLists(){
 }
 function renderCal(){
  cal.innerHTML='';
- const start=monday(today());let wH=0,w€=0;
+ const start=monday(today());
+ let wH=0,wEur=0;
  for(let i=0;i<7;i++){
    const d=new Date(start.getTime()+DAY*i),ds=d.toISOString().split('T')[0];
    const items=[...sugg,...appr].filter(x=>x.date===ds);
    const h=items.reduce((a,b)=>a+diffH(b.start,b.end),0);
    const eur=items.reduce((a,b)=>a+euro(diffH(b.start,b.end),b.rate,b.bill),0);
-   wH+=h;w€+=eur;
+   wH+=h;wEur+=eur;
    const div=document.createElement('div');div.className='day '+(h>=TARGET?'ok':'warn');
    div.innerHTML=`<div class=dayHeader><span>${d.toLocaleDateString('en-GB',{weekday:'short'})}</span><span>${ds}</span></div>
    <ul class=dayList>${items.map(x=>`<li>${x.start}-${x.end} ${x.desc}${x.bill?' €'+euro(diffH(x.start,x.end),x.rate,x.bill).toFixed(0):''}</li>`).join('')}</ul>
    <div class=tot>${h.toFixed(1)}h / €${eur.toFixed(0)}</div>`;
    cal.appendChild(div);
  }
- wk.textContent=`Week total: ${wH.toFixed(1)}h  •  €${w€.toFixed(0)}`;
+ wk.textContent=`Week total: ${wH.toFixed(1)}h  •  €${wEur.toFixed(0)}`;
 }
 
 /* ----- data-toiminnot ----- */

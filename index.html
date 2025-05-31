@@ -101,6 +101,15 @@ input[type=text],input[type=date],input[type=time],input[type=number]{
 </div>
 
 <script>
+ /* ===== helper ===== */
+const $ = id => document.getElementById(id);
+
+/* 👉  TÄRKEÄ: poimi lomakekentät kerran sivun latauduttua  */
+const fd=$('fd'), fs=$('fs'), fe=$('fe'),
+      fdesc=$('fdesc'), fproj=$('fproj'),
+      frate=$('frate'), fbill=$('fbill');
+
+
 /* ======= utils ======= */
 const DAY = 864e5, TARGET = 7.5;
 const $ = id => document.getElementById(id);

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TimeRaven AI — Full Demo</title>
+<style>
+:root{
+  --blue:#273c75; --green:#44bd32; --red:#e84118; --grey:#778ca3;
+  --bg:#f4f7fa; --shadow:rgba(0,0,0,.12); --warn:#ffe6e6; --ok:#e9f9e9
+}
+*{box-sizing:border-box;font-family:-apple-system,Arial,Helvetica,sans-serif}
+body{margin:0;background:var(--bg);color:#333}
+header{background:var(--blue);color:#fff;padding:18px;font-size:22px;display:flex;justify-content:space-between;align-items:center}
+header button{background:#fff;color:var(--blue);border:none;border-radius:6px;padding:6px 12px;font-size:16px;cursor:pointer}
+main{padding:18px}
+/* calendar grid */
+.calendar{display:grid;gap:12px;grid-template-columns:repeat(7,1fr)}
+.day{background:#fff;padding:12px;border-radius:8px;box-shadow:0 2px 4px var(--shadow);min-height:140px;display:flex;flex-direction:column}
+.dayHeader{font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between}
+.dayList{list-style:none;padding:0;margin:0;flex:1}
+.dayList li{font-size:13px;margin:2px 0}
+.tot{font-weight:600;margin-top:4px}
+.ok{background:var(--ok)}
+.warn{background:var(--warn)}
+/* form / modal */
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;place-items:center;z-index:999}
+#modal{background:#fff;border-radius:10px;padding:22px;width:92%;max-width:480px;box-shadow:0 6px 12px var(--shadow)}
+#modal h3{margin-top:0;font-size:20px;color:var(--blue)}
+label{display:block;font-size:14px;margin:8px 0 4px}
+input[type=text],input[type=date],input[type=time],input[type=number]{width:100%;padding:7px;border:1px solid #ccc;border-radius:4px}
+.rowBtns{text-align:right;margin-top:12px}
+.rowBtns button{border:none;border-radius:4px;margin-left:8px;padding:8px 16px;font-size:15px;cursor:pointer}
+.save{background:var(--green);color:#fff}
+</style>
+</head>
+<body>
+
+<header>
+  🦅 TimeRaven AI — Demo
+  <button onclick="openForm()">＋ Add entry</button>
+</header>
+
+<main>
+  <div id="weekSummary" style="margin-bottom:14px;font-weight:600"></div>
+  <div class="calendar" id="cal"></div>
+</main>
+
+<!-- ----------  ADD / EDIT MODAL ---------- -->
+<div id="overlay">
+  <div id="modal">
+    <h3 id="formTitle">New entry</h3>
+    <label>Date <input type="date" id="fDate" required></label>
+    <label>Start <input type="time" id="fStart" required></label>
+    <label>End <input type="time" id="fEnd" required></label>
+    <label>Description <input type="text" id="fDesc"></label>
+    <label>Project <input type="text" id="fProj"></label>
+    <label>Hourly rate (€) <input type="number" id="fRate" value="100"></label>
+    <label><input type="checkbox" id="fBill"> Billable</label>
+    <div class="rowBtns">
+      <button onclick="closeForm()">Cancel</button>
+      <button class="save" onclick="saveEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ----------- data & utils ----------- */
+const DAY_MS=24*60*60*1000, TARGET_H=7.5;
+let entries=[
+  {id:1,date:today(),start:"09:00",end:"10:00",desc:"Kick-off”,proj:"Acme",bill:true,rate:120},
+];
+let editId=null;
+function today(){return new Date().toISOString().split('T')[0];}
+function diffHours(s,e){
+  const [sh,sm]=s.split(':').map(Number), [eh,em]=e.split(':').map(Number);
+  return (eh+em/60)-(sh+sm/60);
+}
+function euro(h,r,bill){return bill? h*r : 0;}
+function uid(){return Math.max(0,...entries.map(e=>e.id))+1;}
+function monday(d){const t=new Date(d); const day=t.getDay()||7; return new Date(t-DAY_MS*(day-1));}
+/* ----------- render calendar ----------- */
+function render(){
+  const cal=document.getElementById('cal'); cal.innerHTML='';
+  const start= monday(today());
+  let weekH=0, week€=0;
+  for(let i=0;i<7;i++){
+    const day=new Date(start.getTime()+DAY_MS*i);
+    const dStr=day.toISOString().split('T')[0];
+    const list=entries.filter(e=>e.date===dStr);
+    const h=sum(list.map(l=>diffHours(l.start,l.end)));
+    const eur=sum(list.map(l=>euro(diffHours(l.start,l.end),l.rate,l.bill)));
+    weekH+=h; week€+=eur;
+    const div=document.createElement('div'); div.className='day';
+    div.classList.add(h===TARGET_H?'ok':'warn');
+    div.innerHTML=`
+      <div class="dayHeader"><span>${day.toLocaleDateString('en-GB',{weekday:'short'})}</span><span>${dStr}</span></div>
+      <ul class="dayList">
+        ${list.map(l=>`<li>${l.start}–${l.end} • ${hours(diffHours(l.start,l.end))}h • ${l.desc} ${l.bill?('€'+euro(diffHours(l.start,l.end),l.rate,l.bill)):''}</li>`).join('')}
+      </ul>
+      <div class="tot">${hours(h)}h / €${eur.toFixed(0)}</div>
+      <div style="font-size:12px;color:${h> TARGET_H?'var(--red)':'var(--grey)'}">
+        ${h>=TARGET_H?'+':'−'}${Math.abs((h-TARGET_H)).toFixed(1)}h
+      </div>`;
+    cal.appendChild(div);
+  }
+  document.getElementById('weekSummary').textContent=
+    `Week total: ${hours(weekH)}h  •  €${week€.toFixed(0)}`;
+}
+function sum(arr){return arr.reduce((a,b)=>a+b,0);}
+function hours(h){return h.toFixed(1);}
+render();
+
+/* ----------- form logic ----------- */
+function openForm(e=null){
+  editId=null;
+  if(e){ // edit existing
+    editId=e.id;
+    fDate.value=e.date; fStart.value=e.start; fEnd.value=e.end;
+    fDesc.value=e.desc; fProj.value=e.proj; fRate.value=e.rate; fBill.checked=e.bill;
+    formTitle.textContent='Edit entry';
+  }else{
+    fDate.value=today(); fStart.value='09:00'; fEnd.value='17:00';
+    fDesc.value=''; fProj.value=''; fRate.value=100; fBill.checked=true;
+    formTitle.textContent='New entry';
+  }
+  overlay.style.display='grid';
+}
+function closeForm(){overlay.style.display='none';}
+function saveEntry(){
+  const obj={
+    id:editId??uid(),
+    date:fDate.value,start:fStart.value,end:fEnd.value,
+    desc:fDesc.value||'—',proj:fProj.value||'—',bill:fBill.checked,rate:Number(fRate.value||0)
+  };
+  if(editId){ // replace
+    const i=entries.findIndex(x=>x.id===editId); entries[i]=obj;
+  }else{entries.push(obj);}
+  closeForm(); render();
+}
+/* util to sum decimals precisely */ 
+Number.prototype.add=function(n){return(Number(this)+Number(n)).toFixed(2);}
+</script>
+</body>
+</html>

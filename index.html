@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TimeRaven Demo</title>
+
+<style>
+:root{
+ --blue:#273c75;--green:#44bd32;--red:#e84118;--grey:#7f8fa6;
+ --ok:#e7fbe7;--warn:#ffeaea;--bg:#f4f7fa;--shadow:rgba(0,0,0,.12)
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,Arial,Helvetica,sans-serif}
+body{background:var(--bg);color:#333}
+header{background:var(--blue);color:#fff;padding:18px;font-size:22px;
+       display:flex;justify-content:space-between;align-items:center}
+header button{background:#fff;color:var(--blue);border:none;border-radius:6px;
+              padding:7px 14px;font-size:16px;cursor:pointer}
+
+main{padding:18px}
+
+/* --- lists --- */
+.lists{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:28px}
+.panel{background:#fff;flex:1 1 340px;min-width:280px;border-radius:8px;
+       box-shadow:0 2px 4px var(--shadow);padding:14px}
+.panel h2{font-size:18px;color:var(--blue);margin-bottom:10px}
+ul{list-style:none}
+.item{border-bottom:1px solid #ececec;padding:10px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px}
+.tag{background:#dcdde1;border-radius:4px;padding:2px 6px;font-size:12px;margin-left:4px}
+.bill{background:#c8f7c5}
+.act{padding:4px 8px;font-size:13px;border-radius:4px;color:#fff}
+.accept{background:var(--green)} .reject{background:var(--red)} .undo{background:var(--grey)}
+.edit,.del{background:none;font-size:18px;border:none;padding:0 4px;cursor:pointer}
+.edit{color:var(--blue)} .del{color:var(--red)}
+
+/* --- calendar --- */
+.calendar{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.day{background:#fff;border-radius:8px;box-shadow:0 2px 4px var(--shadow);
+     padding:12px;display:flex;flex-direction:column;min-height:150px}
+.dayHeader{font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between}
+.dayList{flex:1;font-size:12px}
+.dayList li{margin:2px 0}
+.tot{font-weight:600;margin-top:4px}
+.ok{background:var(--ok)} .warn{background:var(--warn)}
+
+/* --- modal --- */
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;
+         place-items:center;z-index:999}
+#modal{background:#fff;border-radius:10px;padding:22px;width:92%;max-width:480px;
+       box-shadow:0 6px 12px var(--shadow)}
+#modal h3{margin:0 0 12px;font-size:20px;color:var(--blue)}
+label{display:block;font-size:14px;margin:8px 0 4px}
+input[type=text],input[type=date],input[type=time],input[type=number]{
+ width:100%;padding:7px;border:1px solid #ccc;border-radius:4px}
+.rowBtns{text-align:right;margin-top:14px}
+.rowBtns button{padding:8px 16px;margin-left:8px;font-size:15px;border:none;border-radius:4px}
+.save{background:var(--green);color:#fff}
+
+@media(max-width:630px){
+ .lists{flex-direction:column}
+ .act{margin-top:4px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  🦅 TimeRaven Demo
+  <button id="addBtn">＋ Add entry</button>
+</header>
+
+<main>
+  <div class="lists">
+    <div class="panel"><h2>Suggestions</h2><ul id="ul-s"></ul></div>
+    <div class="panel"><h2>Approved</h2>   <ul id="ul-a"></ul></div>
+    <div class="panel"><h2>Rejected</h2>   <ul id="ul-r"></ul></div>
+  </div>
+
+  <div id="weekSummary" style="font-weight:600;margin-bottom:12px"></div>
+  <div class="calendar" id="cal"></div>
+</main>
+
+<!-- modal -->
+<div id="overlay">
+  <div id="modal">
+    <h3 id="formTitle">New entry</h3>
+    <label>Date        <input type="date"   id="fd"></label>
+    <label>Start       <input type="time"   id="fs"></label>
+    <label>End         <input type="time"   id="fe"></label>
+    <label>Description <input type="text"   id="fdesc"></label>
+    <label>Project     <input type="text"   id="fproj"></label>
+    <label>Hourly €    <input type="number" id="frate" value="100"></label>
+    <label><input type="checkbox" id="fbill"> Billable</label>
+    <div class="rowBtns">
+      <button id="cancelBtn">Cancel</button>
+      <button class="save" id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+window.addEventListener('DOMContentLoaded',()=>{
+
+/* ---------- DOM helpers ---------- */
+const $ = id=>document.getElementById(id);
+const addBtn = $('addBtn'), overlay=$('overlay'),
+      formTitle=$('formTitle'), cancelBtn=$('cancelBtn'), saveBtn=$('saveBtn');
+const fd=$('fd'),fs=$('fs'),fe=$('fe'),fdesc=$('fdesc'),fproj=$('fproj'),frate=$('frate'),fbill=$('fbill');
+
+/* ---------- constants & utils ---------- */
+const DAY=864e5, TARGET=7.5;
+const diffH=(s,e)=>{const [sh,sm]=s.split(':').map(Number),[eh,em]=e.split(':').map(Number);return(eh+em/60)-(sh+sm/60)};
+const euro=(h,r,b)=>b?h*r:0;
+const today=()=>new Date().toISOString().split('T')[0];
+const monday=d=>{const t=new Date(d),w=t.getDay()||7;return new Date(t-DAY*(w-1))};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
+
+/* ---------- data ---------- */
+let sugg=[{id:uid(),date:today(),start:"09:00",end:"10:00",desc:"Kick-off",proj:"Acme",rate:120,bill:true}];
+let appr=[], rej=[], editState=null;
+
+/* ---------- render lists ---------- */
+const ulS=$('ul-s'), ulA=$('ul-a'), ulR=$('ul-r');
+function line(e,block){
+ const h=diffH(e.start,e.end), eur=euro(h,e.rate,e.bill);
+ const btnBlock = block==='s'
+   ? `<button class="accept act" onclick="mv('s','a','${e.id}')">Accept</button>
+      <button class="reject act" onclick="mv('s','r','${e.id}')">Reject</button>`
+   : block==='a'
+   ? `<button class="undo act"   onclick="mv('a','s','${e.id}')">Undo</button>
+      <button class="reject act" onclick="mv('a','r','${e.id}')">Reject</button>`
+   : `<button class="undo act"   onclick="mv('r','s','${e.id}')">Undo</button>
+      <button class="accept act" onclick="mv('r','a','${e.id}')">Accept</button>`;
+
+ return `<li class="item">
+   <div class="row">
+     <span style="flex:1">${e.start}-${e.end} • ${h.toFixed(1)}h • ${e.desc}
+       <span class="tag">${e.proj}</span>${e.bill?`<span class="tag bill">€${eur.toFixed(0)}</span>`:''}
+     </span>
+     <span class="row">
+       ${btnBlock}
+       <button class="edit" title="Edit" onclick="ed('${block}','${e.id}')">✏️</button>
+       <button class="del"  title="Delete" onclick="del('${block}','${e.id}')">🗑</button>
+     </span>
+   </div></li>`;
+}
+
+function renderLists(){
+ ulS.innerHTML=sugg.map(e=>line(e,'s')).join('');
+ ulA.innerHTML=appr.map(e=>line(e,'a')).join('');
+ ulR.innerHTML=rej .map(e=>line(e,'r')).join('');
+}
+
+/* ---------- calendar ---------- */
+function renderCal(){
+ const cal=$('cal');cal.innerHTML='';
+ const start=monday(today());
+ let wH=0,w€=0;
+ for(let i=0;i<7;i++){
+   const d=new Date(start.getTime()+DAY*i), ds=d.toISOString().split('T')[0];
+   const items=[...sugg,...appr].filter(x=>x.date===ds);
+   const h=items.reduce((a,b)=>a+diffH(b.start,b.end),0);
+   const eur=items.reduce((a,b)=>a+euro(diffH(b.start,b.end),b.rate,b.bill),0);
+   wH+=h;w€+=eur;
+   const day=document.createElement('div');
+   day.className='day '+(h>=TARGET?'ok':'warn');
+   day.innerHTML=`
+     <div class=dayHeader><span>${d.toLocaleDateString('en-GB',{weekday:'short'})}</span><span>${ds}</span></div>
+     <ul class=dayList>${items.map(x=>`<li>${x.start}-${x.end} ${x.desc} ${x.bill?'€'+euro(diffH(x.start,x.end),x.rate,x.bill).toFixed(0):''}</li>`).join('')}</ul>
+     <div class=tot>${h.toFixed(1)}h / €${eur.toFixed(0)}</div>
+     <div style="font-size:11px;color:${h>=TARGET?'var(--red)':'var(--grey)'}">
+       ${h>=TARGET?'+':'−'}${Math.abs(h-TARGET).toFixed(1)}h
+     </div>`;
+   cal.appendChild(day);
+ }
+ $('weekSummary').textContent=`Week total: ${wH.toFixed(1)}h  •  €${w€.toFixed(0)}`;
+}
+
+/* ---------- CRUD ---------- */
+window.mv=(from,to,id)=>{
+  const src = from==='s'?sugg:from==='a'?appr:rej;
+  const dst = to  ==='s'?sugg:to  ==='a'?appr:rej;
+  const i=src.findIndex(x=>x.id===id);
+  if(i>-1){dst.push(src[i]);src.splice(i,1);update();}
+};
+window.del=(block,id)=>{
+  if(!confirm('Delete entry?'))return;
+  const arr=block==='s'?sugg:block==='a'?appr:rej;
+  const i=arr.findIndex(x=>x.id===id);
+  if(i>-1){arr.splice(i,1);update();}
+};
+window.ed=(block,id)=>{
+  editState={arr:block==='s'?sugg:block==='a'?appr:rej,id};
+  const obj=editState.arr.find(x=>x.id===id);
+  formTitle.textContent='Edit entry';
+  fd.value=obj.date;fs.value=obj.start;fe.value=obj.end;
+  fdesc.value=obj.desc;fproj.value=obj.proj;frate.value=obj.rate;fbill.checked=obj.bill;
+  overlay.style.display='grid';
+};
+
+/* ---------- form actions ---------- */
+function openNew(){
+  editState=null;
+  formTitle.textContent='New entry';
+  fd.value=today();fs.value='09:00';fe.value='17:00';
+  fdesc.value='';fproj.value='';frate.value=100;fbill.checked=true;
+  overlay.style.display='grid';
+}
+function save(){
+ const obj={
+   id:editState?editState.id:uid(),
+   date:fd.value,start:fs.value,end:fe.value,
+   desc:fdesc.value||'—',proj:fproj.value||'—',
+   rate:+frate.value||0,bill:fbill.checked
+ };
+ if(editState){
+   const i=editState.arr.findIndex(x=>x.id===editState.id);
+   editState.arr[i]=obj;
+ }else{ sugg.push(obj); }
+ close();update();
+}
+function close(){overlay.style.display='none';}
+cancelBtn.onclick=close; saveBtn.onclick=save; addBtn.onclick=openNew;
+
+/* ---------- init ---------- */
+function update(){renderLists();renderCal();}
+update();
+
+});
+</script>
+</body>
+</html>

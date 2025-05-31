@@ -1281,6 +1281,10 @@ function renderCal(){
     div.className = `day ${isWeekend ? 'weekend' : (h>=TARGET?'ok':'warn')} ${isWeekend && hasHours ? 'has-hours' : ''} ${isCurrentMonth?'':'other-month'}`;
     if(!isCurrentMonth) div.style.opacity='0.5';
     
+    // Make the day clickable
+    div.style.cursor = 'pointer';
+    div.onclick = () => openNew(ds);
+    
     div.innerHTML=`<div class=dayHeader>
       <span>${d.toLocaleDateString('en-GB',{weekday:'short'})}</span>
       <span>${d.getDate()}</span>
@@ -1289,7 +1293,7 @@ function renderCal(){
       <li>
         <span>${x.start}-${x.end} ${x.desc}${x.bill?' €'+euro(diffH(x.start,x.end),x.rate,x.bill).toFixed(0):''}</span>
         ${x.id && (sugg.includes(x) || appr.includes(x))?`
-          <button class="edit" onclick="edit('${sugg.includes(x)?'s':'a'}','${x.id}')" style="font-size:14px">✏️</button>
+          <button class="edit" onclick="event.stopPropagation(); edit('${sugg.includes(x)?'s':'a'}','${x.id}')" style="font-size:14px">✏️</button>
         `:''}
       </li>`).join('')}</ul>
     <div class=tot>${h.toFixed(1)}h / €${eur.toFixed(0)}</div>`;
@@ -1335,11 +1339,17 @@ window.edit=(blk,id)=>{
 };
 
 /* ----- form ----- */
-function openNew(){
-  editState=null;formTitle.textContent='New entry';
-  fd.value=today();fs.value='09:00';fe.value='17:00';
-  fdesc.value='';fproj.value='';frate.value=100;fbill.checked=true;
-  overlay.style.display='grid';
+function openNew(date = today()){
+  editState = null;
+  formTitle.textContent = 'New entry';
+  fd.value = date;
+  fs.value = '09:00';
+  fe.value = '17:00';
+  fdesc.value = '';
+  fproj.value = '';
+  frate.value = 100;
+  fbill.checked = true;
+  overlay.style.display = 'grid';
 }
 
 function close(){
@@ -1390,6 +1400,20 @@ function setupProjectSuggestions() {
   
   updateProjectList();
 }
+
+/* Add hover effect styles */
+const hoverStyle = document.createElement('style');
+hoverStyle.textContent = `
+  .day:hover {
+    transform: scale(1.02);
+    transition: transform 0.2s;
+    box-shadow: 0 4px 8px var(--shadow);
+  }
+  .day {
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+`;
+document.head.appendChild(hoverStyle);
 </script>
 </body>
 </html>

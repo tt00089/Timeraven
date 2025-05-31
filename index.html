@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<title>TimeRaven AI — Interactive Demo</title>
+
+<style>
+:root{--blue:#273c75;--green:#44bd32;--red:#e84118;--grey:#7f8fa6;--bg:#f4f7fa;--shadow:rgba(0,0,0,.12)}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,Arial,Helvetica,sans-serif}
+body{background:var(--bg);color:#333}
+header{background:var(--blue);color:#fff;padding:18px;font-size:22px}
+main{padding:18px;display:flex;flex-wrap:wrap;gap:18px}
+.panel{background:#fff;border-radius:8px;box-shadow:0 2px 4px var(--shadow);flex:1 1 360px;min-width:300px;padding:16px}
+h2{margin-bottom:10px;font-size:18px;color:var(--blue)}
+ul{list-style:none}
+li{border-bottom:1px solid #ececec;padding:10px 0;display:flex;flex-direction:column;gap:6px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap}
+.tag{background:#dcdde1;border-radius:4px;font-size:12px;padding:2px 6px;margin-left:6px}
+button{border:none;border-radius:4px;padding:6px 10px;font-size:14px;cursor:pointer}
+.accept{background:var(--green);color:#fff}
+.reject{background:var(--red);color:#fff}
+.undo{background:var(--grey);color:#fff}
+.edit{background:none;color:var(--blue);font-size:18px;line-height:1;cursor:pointer;border:none;padding:0 4px}
+@media(max-width:600px){button{font-size:13px;padding:5px 8px}}
+/* small modal for editing */
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:999}
+#modal{background:#fff;border-radius:10px;padding:22px;max-width:440px;width:88%;box-shadow:0 6px 12px var(--shadow)}
+#modal h3{margin-bottom:10px;font-size:20px;color:var(--blue)}
+#modal label{display:block;font-size:14px;margin:8px 0 4px}
+#modal input{width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;font-size:15px}
+#modal .chk{width:auto;margin-right:6px}
+#modal .rowBtns{margin-top:14px;text-align:right}
+#modal .rowBtns button{margin-left:8px;padding:8px 16px;font-size:15px}
+</style>
+</head>
+<body>
+<header>🦅 TimeRaven AI — Demo</header>
+
+<main>
+  <section class="panel">
+    <h2>AI Suggestions</h2>
+    <ul id="list-suggestions"></ul>
+  </section>
+  <section class="panel">
+    <h2>Approved</h2>
+    <ul id="list-approved"></ul>
+  </section>
+  <section class="panel">
+    <h2>Rejected</h2>
+    <ul id="list-rejected"></ul>
+  </section>
+</main>
+
+<!-- edit modal -->
+<div id="overlay">
+  <div id="modal">
+    <h3>Edit entry</h3>
+    <label>Description<input id="inDesc"></label>
+    <label>Project<input id="inProj"></label>
+    <label><input type="checkbox" id="inBill" class="chk"> Billable</label>
+    <div class="rowBtns">
+      <button onclick="closeModal()">Cancel</button>
+      <button class="accept" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ------- mock data ------- */
+let suggestions=[
+ {id:1,desc:"09:00 – 10:00 Kick-off meeting – Client Acme",project:"Acme Website",billable:true},
+ {id:2,desc:"10:15 – 11:45 Code review – Internal",project:"Internal R&D",billable:false},
+ {id:3,desc:"13:00 – 14:30 Sprint planning – Client Beta",project:"Beta Mobile App",billable:true}
+];
+let approved=[];
+let rejected=[];
+
+/* ------- render helpers ------- */
+const els={sugg:document.getElementById('list-suggestions'),
+           appr:document.getElementById('list-approved'),
+           rej: document.getElementById('list-rejected')};
+
+function renderList(arr,target,status){
+  target.innerHTML=arr.map(e=>`
+    <li>
+      <div class="row">
+        <span style="flex:1">${e.desc}<span class="tag">${e.project}</span>${e.billable?'<span class="tag" style="background:#c8f7c5">€</span>':''}</span>
+        <div class="row">
+          ${status!=='sugg'?`<button class="undo" onclick="move('${status}','sugg',${e.id})">Undo</button>`:''}
+          ${status!=='appr'?`<button class="accept" onclick="move('${status}','appr',${e.id})">Accept</button>`:''}
+          ${status!=='rej'?`<button class="reject" onclick="move('${status}','rej',${e.id})">Reject</button>`:''}
+          <button class="edit" title="Edit" onclick="openEdit('${status}',${e.id})">✏️</button>
+        </div>
+      </div>
+    </li>`).join('');
+}
+
+function render(){
+  renderList(suggestions,els.sugg,'sugg');
+  renderList(approved,els.appr,'appr');
+  renderList(rejected,els.rej,'rej');
+}
+
+/* ------- move entry between arrays ------- */
+function move(from,to,id){
+  const fromArr=getArr(from), toArr=getArr(to);
+  const idx=fromArr.findIndex(x=>x.id===id);
+  if(idx>-1){toArr.push(fromArr[idx]);fromArr.splice(idx,1);render();}
+}
+function getArr(key){return key==='sugg'?suggestions:key==='appr'?approved:rejected;}
+
+/* ------- edit modal ------- */
+let currentStatus='', currentId=null;
+function openEdit(status,id){
+  currentStatus=status; currentId=id;
+  const item=getArr(status).find(x=>x.id===id);
+  inDesc.value=item.desc;
+  inProj.value=item.project;
+  inBill.checked=item.billable;
+  overlay.style.display='grid';
+}
+function closeModal(){overlay.style.display='none';}
+function saveEdit(){
+  const arr=getArr(currentStatus);
+  const item=arr.find(x=>x.id===currentId);
+  if(item){
+    item.desc=inDesc.value.trim()||item.desc;
+    item.project=inProj.value.trim()||item.project;
+    item.billable=inBill.checked;
+    render();
+  }
+  closeModal();
+}
+
+/* ------- kick off ------- */
+render();
+</script>
+</body>
+</html>

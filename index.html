@@ -8,7 +8,8 @@
 <!-- ===========  STYLES  =========== -->
 <style>
 :root{--blue:#273c75;--green:#44bd32;--red:#e84118;--grey:#7f8fa6;
-      --ok:#e7fbe7;--warn:#ffeaea;--bg:#f4f7fa;--shadow:rgba(0,0,0,.12)}
+      --ok:#e7fbe7;--warn:#ffeaea;--bg:#f4f7fa;--shadow:rgba(0,0,0,.12);
+      --orange:#e67e22;--yellow:#f1c40f;--purple:#9b59b6;--teal:#1abc9c}
 *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,Arial,Helvetica,sans-serif}
 body{background:var(--bg);color:#333}
 header{background:var(--blue);color:#fff;padding:18px;font-size:22px;
@@ -20,11 +21,13 @@ main{padding:18px}
 /* LISTIT */
 .lists{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:26px}
 .panel{background:#fff;flex:1 1 340px;min-width:280px;border-radius:8px;
-       box-shadow:0 2px 4px var(--shadow);padding:14px}
+       box-shadow:0 2px 4px var(--shadow);padding:14px;display:flex;flex-direction:column}
 .panel h2{font-size:18px;color:var(--blue);margin-bottom:10px}
 ul{list-style:none}
+.panel ul{overflow-y:auto;max-height:300px}
 .item{border-bottom:1px solid #ececec;padding:10px 0;font-size:14px}
 .row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px}
+.date{color:var(--grey);font-size:12px;margin-bottom:4px}
 .tag{background:#dcdde1;border-radius:4px;padding:2px 6px;font-size:12px;margin-left:4px}
 .bill{background:#c8f7c5}
 .act{padding:4px 8px;font-size:13px;border-radius:4px;color:#fff}
@@ -33,14 +36,26 @@ ul{list-style:none}
 .edit{color:var(--blue)} .del{color:var(--red)}
 
 /* KALENTERI */
-.calendar{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.calendar{display:flex;flex-direction:column;gap:12px}
+.week{display:grid;gap:8px;grid-template-columns:repeat(7,1fr)}
 .day{background:#fff;border-radius:8px;box-shadow:0 2px 4px var(--shadow);
-     padding:12px;display:flex;flex-direction:column;min-height:150px}
-.dayHeader{font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between}
-.dayList{flex:1;font-size:12px}
-.dayList li{margin:2px 0}
-.tot{font-weight:600;margin-top:4px}
-.ok{background:var(--ok)} .warn{background:var(--warn)}
+     padding:10px;display:flex;flex-direction:column;min-height:120px}
+.dayHeader{font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;font-size:13px}
+.dayList{flex:1;font-size:12px;overflow-y:auto;max-height:60px}
+.dayList li{margin:2px 0;display:flex;justify-content:space-between;align-items:center}
+.dayList li button{opacity:0;transition:opacity 0.2s}
+.dayList li:hover button{opacity:1}
+.tot{font-weight:600;margin-top:4px;font-size:13px}
+.ok{background:var(--ok)}
+.warn{background:var(--warn)}
+.weekend{background:#f8f9fa;color:#666}
+.weekend.has-hours{background:#fff3e0} /* Orange tint for weekend work */
+@media(max-width:1400px){.week{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:768px){.week{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.week{grid-template-columns:1fr}}
+
+/* Summary section */
+.summary{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:0 4px}
 
 /* MODAALI */
 #overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;
@@ -55,27 +70,412 @@ input[type=text],input[type=date],input[type=time],input[type=number]{
 .rowBtns button{padding:8px 16px;margin-left:8px;font-size:15px;border:none;border-radius:4px}
 .save{background:var(--green);color:#fff}
 @media(max-width:630px){.lists{flex-direction:column}.act{margin-top:4px}}
+
+.nav-btn{
+  background:var(--blue);
+  color:#fff;
+  border:none;
+  border-radius:4px;
+  padding:8px 16px;
+  cursor:pointer;
+  font-size:16px
+}
+.nav-btn:hover{opacity:0.9}
+
+/* Add project panel styles */
+.project-panel{
+  background:#fff;
+  border-radius:8px;
+  box-shadow:0 2px 4px var(--shadow);
+  padding:16px;
+  margin:18px;
+}
+.project-panel h2{
+  color:var(--blue);
+  margin-bottom:12px;
+}
+.project-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));
+  gap:16px;
+}
+.project-card{
+  background:#f8f9fa;
+  border-radius:6px;
+  padding:12px;
+}
+.project-card h3{
+  color:var(--blue);
+  margin:0 0 8px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.project-stats{
+  font-size:13px;
+  margin-bottom:8px;
+}
+.progress-bar{
+  height:6px;
+  background:#eee;
+  border-radius:3px;
+  margin-top:8px;
+}
+.progress-fill{
+  height:100%;
+  border-radius:3px;
+  transition:width 0.3s;
+}
+.progress-ok{background:var(--green)}
+.progress-warn{background:var(--orange)}
+.progress-over{background:var(--red)}
+
+/* Add tab navigation */
+.tab-nav{
+  display:flex;
+  gap:2px;
+  padding:0 18px;
+  margin-top:18px;
+}
+.tab-btn{
+  padding:10px 20px;
+  background:#fff;
+  border:none;
+  border-radius:8px 8px 0 0;
+  color:var(--grey);
+  cursor:pointer;
+}
+.tab-btn.active{
+  background:var(--blue);
+  color:#fff;
+}
+.tab-content{
+  display:none;
+  padding:18px;
+}
+.tab-content.active{
+  display:block;
+}
+
+/* Client dashboard */
+.client-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:16px;
+}
+.client-card{
+  background:#fff;
+  border-radius:8px;
+  padding:16px;
+  margin-bottom:16px;
+}
+.client-projects{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(250px, 1fr));
+  gap:12px;
+  margin-top:12px;
+}
+.currency-tag{
+  display:inline-block;
+  padding:2px 6px;
+  border-radius:4px;
+  font-size:12px;
+  margin-left:4px;
+}
+
+/* Template styles */
+.template-list{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));
+  gap:16px;
+}
+.template-card{
+  background:#fff;
+  border-radius:8px;
+  padding:16px;
+  position:relative;
+}
+.template-actions{
+  position:absolute;
+  top:12px;
+  right:12px;
+  display:flex;
+  gap:8px;
+}
+.template-tag{
+  background:var(--teal);
+  color:#fff;
+  padding:2px 6px;
+  border-radius:4px;
+  font-size:12px;
+}
+
+/* Notes and attachments */
+.notes-section{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid #eee;
+}
+.attachment-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:8px;
+}
+.attachment-chip{
+  background:#f1f2f6;
+  border-radius:16px;
+  padding:4px 12px;
+  font-size:13px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+/* Add to existing styles */
+.header-menu{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.help-btn{
+  background:none;
+  border:none;
+  color:#fff;
+  cursor:pointer;
+  padding:4px 8px;
+  border-radius:4px;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  font-size:15px;
+}
+.help-btn:hover{
+  background:rgba(255,255,255,0.1);
+}
+.changelog-item{
+  margin-bottom:20px;
+}
+.changelog-date{
+  color:var(--blue);
+  font-weight:600;
+  margin-bottom:8px;
+}
+.changelog-list{
+  list-style:none;
+  padding-left:20px;
+}
+.changelog-list li{
+  margin-bottom:6px;
+  position:relative;
+}
+.changelog-list li::before{
+  content:'';
+  position:absolute;
+  left:-20px;
+  top:8px;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--blue);
+}
+.feature{color:var(--green)}
+.fix{color:var(--red)}
+.improvement{color:var(--orange)}
+
+.guide-section{
+  margin-bottom:24px;
+}
+.guide-section h3{
+  color:var(--blue);
+  margin-bottom:12px;
+}
+.guide-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+  gap:16px;
+  margin-top:16px;
+}
+.guide-card{
+  background:#f8f9fa;
+  border-radius:8px;
+  padding:16px;
+}
+.guide-card h4{
+  color:var(--blue);
+  margin:0 0 8px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.guide-steps{
+  list-style:none;
+  padding:0;
+}
+.guide-steps li{
+  margin-bottom:8px;
+  padding-left:24px;
+  position:relative;
+}
+.guide-steps li::before{
+  content:'→';
+  position:absolute;
+  left:0;
+  color:var(--grey);
+}
 </style>
 </head>
 <body>
 
 <header>
   🦅 TimeRaven Demo
-  <button id="addBtn">＋ Add entry</button>
+  <div class="header-menu">
+    <button class="help-btn" onclick="showGuide()">📖 Guide</button>
+    <button class="help-btn" onclick="showChangelog()">📋 Changelog</button>
+    <button id="exportBtn" title="Export billable hours">📊 Export</button>
+    <button id="addBtn">＋ Add entry</button>
+  </div>
 </header>
 
-<main>
-  <div class="lists">
-    <div class="panel"><h2>Suggestions</h2><ul id="ul-s"></ul></div>
-    <div class="panel"><h2>Approved</h2>   <ul id="ul-a"></ul></div>
-    <div class="panel"><h2>Rejected</h2>   <ul id="ul-r"></ul></div>
+<!-- Add tab navigation -->
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="timesheet" onclick="showTab('timesheet')">📅 Timesheet</button>
+  <button class="tab-btn" data-tab="projects" onclick="showTab('projects')">📊 Projects</button>
+  <button class="tab-btn" data-tab="clients" onclick="showTab('clients')">👥 Clients</button>
+  <button class="tab-btn" data-tab="templates" onclick="showTab('templates')">📋 Templates</button>
+</div>
+
+<!-- Add to the timesheet tab content -->
+<div id="timesheet" class="tab-content active">
+  <div class="help-section" style="background:#fff;margin:18px;padding:18px;border-radius:8px;box-shadow:0 2px 4px var(--shadow)">
+    <h2 style="color:var(--blue);margin-bottom:12px">Welcome to TimeRaven</h2>
+    <p style="margin-bottom:10px">TimeRaven is a time tracking tool that helps you manage and monitor your work hours. Here's how to use it:</p>
+    <ul style="list-style:disc;margin-left:20px;margin-bottom:15px">
+      <li>Click <strong>Add entry</strong> to log your work hours</li>
+      <li>Fill in the details: date, start time, end time, description, and project</li>
+      <li>Mark entries as billable if they should be invoiced</li>
+      <li>Review suggestions and approve or reject them</li>
+      <li>Check the calendar view to see your daily and weekly totals</li>
+    </ul>
+    <p style="color:var(--grey)">Tip: Aim for 7.5 hours per day - days will be highlighted in green when you reach the target!</p>
   </div>
 
-  <div id="weekSummary" style="font-weight:600;margin-bottom:12px"></div>
-  <div class="calendar" id="cal"></div>
-</main>
+  <div class="lists">
+    <div class="panel"><h2>Suggestions</h2><ul id="ul-s"></ul></div>
+    <div class="panel"><h2>Approved</h2><ul id="ul-a"></ul></div>
+    <div class="panel"><h2>Rejected</h2><ul id="ul-r"></ul></div>
+  </div>
 
-<!-- MODAALI -->
+  <div class="summary" style="margin-bottom:12px">
+    <div id="weekSummary" style="font-weight:600"></div>
+    <div id="monthSummary" style="font-weight:600;color:var(--green)"></div>
+  </div>
+
+  <div class="calendar-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <button class="nav-btn" onclick="changeMonth(-1)">◀</button>
+    <h2 id="monthDisplay" style="margin:0;color:var(--blue)"></h2>
+    <button class="nav-btn" onclick="changeMonth(1)">▶</button>
+  </div>
+
+  <div class="legend" style="margin-bottom:12px;display:flex;gap:12px;font-size:13px">
+    <div style="display:flex;align-items:center;gap:4px">
+      <div style="width:16px;height:16px;background:var(--ok);border-radius:4px"></div>
+      <span>≥ 7.5h/day</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px">
+      <div style="width:16px;height:16px;background:var(--warn);border-radius:4px"></div>
+      <span>< 7.5h/day</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px">
+      <div style="width:16px;height:16px;background:#fff;opacity:0.5;border-radius:4px"></div>
+      <span>Other month</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px">
+      <div style="width:16px;height:16px;background:#fff3e0;border-radius:4px"></div>
+      <span>Weekend work (1.5x)</span>
+    </div>
+  </div>
+
+  <div class="calendar-container" style="max-height:calc(100vh - 400px);overflow-y:auto">
+    <div class="calendar" id="cal"></div>
+  </div>
+</div>
+
+<!-- Projects tab -->
+<div id="projects" class="tab-content">
+  <div class="project-panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2>Projects</h2>
+      <button id="addProjectBtn" style="padding:6px 12px;background:var(--blue);color:#fff;border:none;border-radius:4px;cursor:pointer">
+        + New Project
+      </button>
+    </div>
+    <div id="projectGrid" class="project-grid"></div>
+  </div>
+</div>
+
+<!-- Clients tab -->
+<div id="clients" class="tab-content">
+  <div class="client-header">
+    <h2>Clients</h2>
+    <button id="addClientBtn" style="padding:6px 12px;background:var(--blue);color:#fff;border:none;border-radius:4px;cursor:pointer">
+      + New Client
+    </button>
+  </div>
+  <div id="clientList"></div>
+</div>
+
+<!-- Templates tab -->
+<div id="templates" class="tab-content">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h2>Entry Templates</h2>
+    <button id="addTemplateBtn" style="padding:6px 12px;background:var(--blue);color:#fff;border:none;border-radius:4px;cursor:pointer">
+      + New Template
+    </button>
+  </div>
+  <div id="templateList" class="template-list"></div>
+</div>
+
+<!-- Client modal -->
+<div id="clientOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:999">
+  <div style="background:#fff;border-radius:10px;padding:22px;width:92%;max-width:480px">
+    <h3 style="margin:0 0 16px;color:var(--blue)">New Client</h3>
+    <label>Client Name <input type="text" id="clientName"></label>
+    <label>Default Currency 
+      <select id="clientCurrency">
+        <option value="EUR">EUR (€)</option>
+        <option value="USD">USD ($)</option>
+        <option value="GBP">GBP (£)</option>
+      </select>
+    </label>
+    <label>Contact Person <input type="text" id="clientContact"></label>
+    <label>Email <input type="email" id="clientEmail"></label>
+    <label>Notes <textarea id="clientNotes" rows="3"></textarea></label>
+    <div class="rowBtns">
+      <button onclick="closeClientModal()">Cancel</button>
+      <button class="save" onclick="saveClient()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Template modal -->
+<div id="templateOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:999">
+  <div style="background:#fff;border-radius:10px;padding:22px;width:92%;max-width:480px">
+    <h3 style="margin:0 0 16px;color:var(--blue)">New Template</h3>
+    <label>Template Name <input type="text" id="templateName"></label>
+    <label>Project <input type="text" id="templateProj" list="projectList"></label>
+    <label>Description <input type="text" id="templateDesc"></label>
+    <label>Default Hours <input type="number" id="templateHours" step="0.5" value="7.5"></label>
+    <label><input type="checkbox" id="templateBill" checked> Billable</label>
+    <div class="rowBtns">
+      <button onclick="closeTemplateModal()">Cancel</button>
+      <button class="save" onclick="saveTemplate()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add to existing entry form -->
 <div id="overlay">
   <div id="modal">
     <h3 id="formTitle">New entry</h3>
@@ -86,9 +486,191 @@ input[type=text],input[type=date],input[type=time],input[type=number]{
     <label>Project     <input type="text"   id="fproj"></label>
     <label>Hourly €    <input type="number" id="frate" value="100"></label>
     <label><input type="checkbox" id="fbill"> Billable</label>
+    <div class="notes-section">
+      <label>Notes (optional)<textarea id="fnotes" rows="2"></textarea></label>
+      <div>
+        <label style="display:inline">Attachments</label>
+        <button onclick="addAttachment()" style="padding:2px 8px;font-size:12px;margin-left:8px">+ Add</button>
+      </div>
+      <div id="attachmentList" class="attachment-list"></div>
+    </div>
     <div class="rowBtns">
       <button id="cancelBtn">Cancel</button>
       <button class="save" id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Changelog Modal -->
+<div id="changelogOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:999">
+  <div style="background:#fff;border-radius:10px;padding:22px;width:92%;max-width:600px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="margin:0;color:var(--blue)">Changelog</h2>
+      <button onclick="closeChangelog()" style="border:none;background:none;font-size:20px;cursor:pointer">×</button>
+    </div>
+    
+    <div class="changelog-item">
+      <div class="changelog-date">Version 1.2.0 - March 2024</div>
+      <ul class="changelog-list">
+        <li class="feature">Added client management dashboard with multi-currency support</li>
+        <li class="feature">Implemented reusable time entry templates</li>
+        <li class="feature">Added notes and attachments to time entries</li>
+        <li class="improvement">Enhanced project budget tracking with visual indicators</li>
+        <li class="improvement">Added comprehensive user guide</li>
+      </ul>
+    </div>
+    
+    <div class="changelog-item">
+      <div class="changelog-date">Version 1.1.0 - February 2024</div>
+      <ul class="changelog-list">
+        <li class="feature">Added export functionality for billing</li>
+        <li class="feature">Implemented project management features</li>
+        <li class="improvement">Enhanced calendar view with better weekend handling</li>
+        <li class="fix">Fixed weekend overtime calculations</li>
+      </ul>
+    </div>
+    
+    <div class="changelog-item">
+      <div class="changelog-date">Version 1.0.0 - January 2024</div>
+      <ul class="changelog-list">
+        <li class="feature">Initial release with basic time tracking</li>
+        <li class="feature">Calendar view with month navigation</li>
+        <li class="feature">Basic project and rate handling</li>
+        <li class="feature">Suggestion/approval workflow</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Guide Modal -->
+<div id="guideOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:999">
+  <div style="background:#fff;border-radius:10px;padding:22px;width:92%;max-width:800px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="margin:0;color:var(--blue)">TimeRaven User Guide</h2>
+      <button onclick="closeGuide()" style="border:none;background:none;font-size:20px;cursor:pointer">×</button>
+    </div>
+
+    <div class="guide-section">
+      <h3>Getting Started</h3>
+      <p>TimeRaven is a professional time tracking tool designed for consultants and freelancers. It helps you track time, manage projects, and handle client billing efficiently.</p>
+      
+      <div class="guide-grid">
+        <div class="guide-card">
+          <h4>🕒 Track Time</h4>
+          <ol class="guide-steps">
+            <li>Click "+ Add entry" in header</li>
+            <li>Select date and time range</li>
+            <li>Add description and project</li>
+            <li>Mark as billable if needed</li>
+            <li>Save to create entry</li>
+          </ol>
+        </div>
+        
+        <div class="guide-card">
+          <h4>📋 Use Templates</h4>
+          <ol class="guide-steps">
+            <li>Go to Templates tab</li>
+            <li>Create common entry types</li>
+            <li>Set default hours and billing</li>
+            <li>Use template with one click</li>
+          </ol>
+        </div>
+        
+        <div class="guide-card">
+          <h4>👥 Manage Clients</h4>
+          <ol class="guide-steps">
+            <li>Navigate to Clients tab</li>
+            <li>Add client information</li>
+            <li>Set preferred currency</li>
+            <li>Track projects per client</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-section">
+      <h3>Key Features</h3>
+      <div class="guide-grid">
+        <div class="guide-card">
+          <h4>💰 Billing & Export</h4>
+          <ul class="guide-steps">
+            <li>Set project-specific rates</li>
+            <li>Track billable hours</li>
+            <li>Export monthly reports</li>
+            <li>Multi-currency support</li>
+          </ul>
+        </div>
+        
+        <div class="guide-card">
+          <h4>📊 Project Tracking</h4>
+          <ul class="guide-steps">
+            <li>Set project budgets</li>
+            <li>Monitor hours used</li>
+            <li>Get budget warnings</li>
+            <li>Track multiple projects</li>
+          </ul>
+        </div>
+        
+        <div class="guide-card">
+          <h4>📅 Calendar Features</h4>
+          <ul class="guide-steps">
+            <li>Monthly/weekly views</li>
+            <li>Weekend overtime tracking</li>
+            <li>Visual hour indicators</li>
+            <li>Easy navigation</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-section">
+      <h3>Pro Tips</h3>
+      <div class="guide-grid">
+        <div class="guide-card">
+          <h4>⚡ Efficiency</h4>
+          <ul class="guide-steps">
+            <li>Use templates for recurring tasks</li>
+            <li>Set default rates per project</li>
+            <li>Track non-billable time too</li>
+            <li>Add notes for context</li>
+          </ul>
+        </div>
+        
+        <div class="guide-card">
+          <h4>📈 Reporting</h4>
+          <ul class="guide-steps">
+            <li>Export monthly summaries</li>
+            <li>Review project budgets</li>
+            <li>Track billable percentages</li>
+            <li>Monitor overtime</li>
+          </ul>
+        </div>
+        
+        <div class="guide-card">
+          <h4>🎯 Best Practices</h4>
+          <ul class="guide-steps">
+            <li>Enter time daily</li>
+            <li>Add detailed descriptions</li>
+            <li>Review weekly totals</li>
+            <li>Check budget alerts</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add project modal -->
+<div id="projectOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:999">
+  <div style="background:#fff;border-radius:10px;padding:22px;width:92%;max-width:480px">
+    <h3 style="margin:0 0 16px;color:var(--blue)">New Project</h3>
+    <label>Project Name <input type="text" id="projName"></label>
+    <label>Client <input type="text" id="projClient"></label>
+    <label>Budget Hours <input type="number" id="projBudget"></label>
+    <label>Hourly Rate € <input type="number" id="projRate"></label>
+    <div class="rowBtns">
+      <button onclick="closeProjectModal()">Cancel</button>
+      <button class="save" onclick="saveProject()">Save</button>
     </div>
   </div>
 </div>
@@ -100,7 +682,7 @@ const $=id=>document.getElementById(id);
 const addBtn=$('addBtn'),overlay=$('overlay'),formTitle=$('formTitle');
 const cancelBtn=$('cancelBtn'),saveBtn=$('saveBtn');
 const fd=$('fd'),fs=$('fs'),fe=$('fe'),fdesc=$('fdesc'),fproj=$('fproj'),frate=$('frate'),fbill=$('fbill');
-const ulS=$('ul-s'),ulA=$('ul-a'),ulR=$('ul-r'),cal=$('cal'),wk=$('weekSummary');
+const ulS=$('ul-s'),ulA=$('ul-a'),ulR=$('ul-r'),cal=$('cal'),wk=$('weekSummary'),monthSummary=$('monthSummary'),monthDisplay=$('monthDisplay');
 
 /* ----- utils ----- */
 const DAY=864e5,TARGET=7.5;
@@ -108,72 +690,641 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const diffH=(s,e)=>{const [sh,sm]=s.split(':').map(Number),[eh,em]=e.split(':').map(Number);return(eh+em/60)-(sh+sm/60)};
 const euro=(h,r,b)=>b?h*r:0;
 const today=()=>new Date().toISOString().split('T')[0];
-const monday=d=>{const t=new Date(d),w=t.getDay()||7;return new Date(t-DAY*(w-1))};
 
-/* ----- data (3 valmista rivia) ----- */
-let sugg=[
-  {id:uid(),date:today(),start:"09:00",end:"10:00",desc:"Kick-off",proj:"Acme",rate:120,bill:true},
-  {id:uid(),date:today(),start:"10:15",end:"11:45",desc:"Code review",proj:"Internal",rate:0,bill:false},
-  {id:uid(),date:today(),start:"13:00",end:"14:30",desc:"Sprint planning",proj:"Beta",rate:110,bill:true}
+// Current viewed month
+let currentDate = new Date();
+
+function firstDayOfMonth(d){
+  return new Date(d.getFullYear(),d.getMonth(),1);
+}
+
+function lastDayOfMonth(d){
+  return new Date(d.getFullYear(),d.getMonth()+1,0);
+}
+
+function changeMonth(delta){
+  currentDate.setMonth(currentDate.getMonth() + delta);
+  update();
+}
+
+/* ----- Project Management ----- */
+let projects = {
+  'Acme': {client:'Acme Corp', budget:160, rate:120, used:0},
+  'Beta': {client:'Beta Ltd', budget:120, rate:110, used:0},
+  'Gamma': {client:'Gamma Inc', budget:80, rate:130, used:0},
+  'Internal': {client:'Internal', budget:40, rate:0, used:0}
+};
+
+function updateProjectHours() {
+  // Reset used hours
+  Object.keys(projects).forEach(p => projects[p].used = 0);
+  
+  // Calculate used hours from entries
+  [...appr, ...sugg].forEach(entry => {
+    if (projects[entry.proj]) {
+      projects[entry.proj].used += diffH(entry.start, entry.end);
+    }
+  });
+  
+  // Update project cards
+  renderProjects();
+}
+
+function renderProjects() {
+  const grid = $('projectGrid');
+  grid.innerHTML = Object.entries(projects).map(([name, data]) => {
+    const used = data.used;
+    const budget = data.budget;
+    const percent = (used/budget) * 100;
+    let progressClass = 'progress-ok';
+    if (percent >= 90) progressClass = 'progress-over';
+    else if (percent >= 75) progressClass = 'progress-warn';
+    
+    return `
+      <div class="project-card">
+        <h3>
+          ${name}
+          <span style="font-size:12px;color:${data.rate?'var(--green)':'var(--grey)'}">
+            €${data.rate || 0}/h
+          </span>
+        </h3>
+        <div class="project-stats">
+          <div>${data.client}</div>
+          <div style="color:${percent>=100?'var(--red)':'inherit'}">
+            ${used.toFixed(1)}h / ${budget}h (${percent.toFixed(1)}%)
+          </div>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill ${progressClass}" style="width:${Math.min(100,percent)}%"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openProjectModal() {
+  $('projectOverlay').style.display = 'grid';
+  $('projName').value = '';
+  $('projClient').value = '';
+  $('projBudget').value = '120';
+  $('projRate').value = '100';
+}
+
+function closeProjectModal() {
+  $('projectOverlay').style.display = 'none';
+}
+
+function saveProject() {
+  const name = $('projName').value.trim();
+  if (!name) return alert('Project name required');
+  
+  projects[name] = {
+    client: $('projClient').value.trim() || name,
+    budget: +$('projBudget').value || 120,
+    rate: +$('projRate').value || 0,
+    used: 0
+  };
+  
+  closeProjectModal();
+  update();
+}
+
+/* ----- Client Management ----- */
+let clients = {
+  'Acme Corp': {
+    currency: 'EUR',
+    contact: 'John Doe',
+    email: 'john@acme.com',
+    notes: 'Key client - Prefer morning meetings',
+    projects: ['Acme']
+  },
+  'Beta Ltd': {
+    currency: 'USD',
+    contact: 'Jane Smith',
+    email: 'jane@beta.com',
+    notes: 'Billing on 15th',
+    projects: ['Beta']
+  },
+  'Gamma Inc': {
+    currency: 'EUR',
+    contact: 'Bob Wilson',
+    email: 'bob@gamma.com',
+    notes: '',
+    projects: ['Gamma']
+  }
+};
+
+function editClient(name) {
+  const client = clients[name];
+  if (!client) return;
+  
+  $('clientName').value = name;
+  $('clientCurrency').value = client.currency;
+  $('clientContact').value = client.contact;
+  $('clientEmail').value = client.email;
+  $('clientNotes').value = client.notes;
+  
+  openClientModal();
+}
+
+function openClientModal() {
+  $('clientOverlay').style.display = 'grid';
+  if (!$('clientName').value) {
+    $('clientName').value = '';
+    $('clientCurrency').value = 'EUR';
+    $('clientContact').value = '';
+    $('clientEmail').value = '';
+    $('clientNotes').value = '';
+  }
+}
+
+function closeClientModal() {
+  $('clientOverlay').style.display = 'none';
+}
+
+function saveClient() {
+  const name = $('clientName').value.trim();
+  if (!name) return alert('Client name required');
+  
+  // If editing existing client, preserve projects
+  const existingProjects = clients[name] ? clients[name].projects : [];
+  
+  clients[name] = {
+    currency: $('clientCurrency').value,
+    contact: $('clientContact').value.trim(),
+    email: $('clientEmail').value.trim(),
+    notes: $('clientNotes').value.trim(),
+    projects: existingProjects
+  };
+  
+  closeClientModal();
+  renderClients();
+}
+
+function renderClients() {
+  const list = $('clientList');
+  list.innerHTML = Object.entries(clients).map(([name, data]) => {
+    const projectCards = data.projects.map(p => {
+      const proj = projects[p];
+      if (!proj) return '';
+      const used = proj.used;
+      const budget = proj.budget;
+      const percent = (used/budget) * 100;
+      return `
+        <div class="project-card" style="margin-bottom:0">
+          <div style="display:flex;justify-content:space-between">
+            <strong>${p}</strong>
+            <span>${used.toFixed(1)}h / ${budget}h</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill ${percent>=90?'progress-over':percent>=75?'progress-warn':'progress-ok'}" 
+                 style="width:${Math.min(100,percent)}%">
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    return `
+      <div class="client-card">
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div>
+            <h3 style="margin:0 0 8px;color:var(--blue)">${name}</h3>
+            <div style="font-size:13px;color:var(--grey)">
+              ${data.contact} • ${data.email}
+              <span class="currency-tag" style="background:var(--purple);color:#fff">
+                ${data.currency}
+              </span>
+            </div>
+          </div>
+          <button onclick="editClient('${name}')" style="font-size:14px">✏️</button>
+        </div>
+        ${data.notes ? `<div style="margin:8px 0;font-size:13px;font-style:italic">${data.notes}</div>` : ''}
+        <div class="client-projects">
+          ${projectCards}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ----- Templates ----- */
+let templates = [
+  {
+    name: 'Daily Standup',
+    proj: 'Internal',
+    desc: 'Team sync meeting',
+    hours: 0.5,
+    bill: false
+  },
+  {
+    name: 'Development',
+    proj: 'Acme',
+    desc: 'Feature development',
+    hours: 7.5,
+    bill: true
+  }
 ];
-let appr=[],rej=[],editState=null;
 
-/* ----- HTML-rivin rakentaja ----- */
+function editTemplate(index) {
+  const t = templates[index];
+  $('templateName').value = t.name;
+  $('templateProj').value = t.proj;
+  $('templateDesc').value = t.desc;
+  $('templateHours').value = t.hours;
+  $('templateBill').checked = t.bill;
+  
+  openTemplateModal(index);
+}
+
+function openTemplateModal(editIndex = null) {
+  $('templateOverlay').style.display = 'grid';
+  if (editIndex === null) {
+    $('templateName').value = '';
+    $('templateProj').value = '';
+    $('templateDesc').value = '';
+    $('templateHours').value = '7.5';
+    $('templateBill').checked = true;
+  }
+  $('templateName').dataset.editIndex = editIndex;
+}
+
+function closeTemplateModal() {
+  $('templateOverlay').style.display = 'none';
+  $('templateName').dataset.editIndex = '';
+}
+
+function saveTemplate() {
+  const name = $('templateName').value.trim();
+  if (!name) return alert('Template name required');
+  
+  const template = {
+    name: name,
+    proj: $('templateProj').value.trim(),
+    desc: $('templateDesc').value.trim(),
+    hours: +$('templateHours').value || 7.5,
+    bill: $('templateBill').checked
+  };
+  
+  const editIndex = $('templateName').dataset.editIndex;
+  if (editIndex !== '' && editIndex !== null) {
+    templates[editIndex] = template;
+  } else {
+    templates.push(template);
+  }
+  
+  closeTemplateModal();
+  renderTemplates();
+}
+
+function useTemplate(index) {
+  const t = templates[index];
+  const now = new Date();
+  const endTime = new Date(now.getTime() + t.hours * 3600000);
+  
+  fd.value = today();
+  fs.value = now.getHours().toString().padStart(2,'0') + ':' + 
+             now.getMinutes().toString().padStart(2,'0');
+  fe.value = endTime.getHours().toString().padStart(2,'0') + ':' + 
+             endTime.getMinutes().toString().padStart(2,'0');
+  fdesc.value = t.desc;
+  fproj.value = t.proj;
+  fbill.checked = t.bill;
+  
+  showTab('timesheet');
+  openNew();
+}
+
+function deleteTemplate(index) {
+  if (confirm('Delete this template?')) {
+    templates.splice(index, 1);
+    renderTemplates();
+  }
+}
+
+function renderTemplates() {
+  const list = $('templateList');
+  list.innerHTML = templates.map((t, i) => `
+    <div class="template-card">
+      <div class="template-actions">
+        <button onclick="useTemplate(${i})" title="Use template">📋</button>
+        <button onclick="editTemplate(${i})" title="Edit">✏️</button>
+        <button onclick="deleteTemplate(${i})" title="Delete">🗑️</button>
+      </div>
+      <h3 style="margin:0 0 8px;padding-right:80px">${t.name}</h3>
+      <div style="font-size:13px;margin-bottom:4px">
+        <span class="template-tag">${t.proj}</span>
+        ${t.bill ? '<span class="tag bill">Billable</span>' : ''}
+      </div>
+      <div style="color:var(--grey);font-size:13px">
+        ${t.desc} • ${t.hours}h
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ----- Attachment handling ----- */
+function addAttachment() {
+  const name = prompt('Enter attachment name (demo)');
+  if (!name) return;
+  
+  const list = $('attachmentList');
+  const chip = document.createElement('div');
+  chip.className = 'attachment-chip';
+  chip.dataset.name = name;
+  chip.innerHTML = `
+    📎 ${name}
+    <button onclick="this.parentElement.remove()" style="border:none;background:none;cursor:pointer">×</button>
+  `;
+  list.appendChild(chip);
+}
+
+/* ----- Tab Navigation ----- */
+function showTab(tabId) {
+  // Hide all tab contents
+  document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  
+  // Deactivate all tab buttons
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  // Show selected tab content and activate its button
+  $(tabId).classList.add('active');
+  document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
+}
+
+// Add tab button handlers
+function initializeTabHandlers() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.onclick = () => showTab(btn.dataset.tab);
+  });
+}
+
+/* ----- Initialize all button handlers ----- */
+function initializeHandlers() {
+  // Main buttons
+  addBtn.onclick = openNew;
+  cancelBtn.onclick = close;
+  saveBtn.onclick = save;
+  $('exportBtn').onclick = exportData;
+  
+  // Project/Client/Template buttons
+  $('addProjectBtn').onclick = openProjectModal;
+  $('addClientBtn').onclick = openClientModal;
+  $('addTemplateBtn').onclick = openTemplateModal;
+  
+  // Modal save buttons
+  document.querySelector('#projectOverlay .save').onclick = saveProject;
+  document.querySelector('#clientOverlay .save').onclick = saveClient;
+  document.querySelector('#templateOverlay .save').onclick = saveTemplate;
+  
+  // Initialize tab navigation
+  initializeTabHandlers();
+}
+
+/* ----- init ----- */
+function update() {
+  renderLists();
+  renderCal();
+  updateProjectHours();
+  renderClients();
+  renderTemplates();
+}
+
+// Add CSS for other-month class
+const style = document.createElement('style');
+style.textContent = '.other-month{color:#999}';
+document.head.appendChild(style);
+
+// Initialize everything
+document.addEventListener('DOMContentLoaded', () => {
+  update();
+  initializeHandlers();
+  setupProjectSuggestions();
+  
+  // Show initial tab
+  showTab('timesheet');
+});
+
+/* ----- Export functionality ----- */
+function exportData() {
+  // Get selected month data
+  const monthStart = firstDayOfMonth(currentDate);
+  const monthEnd = lastDayOfMonth(currentDate);
+  const monthData = [...appr, ...sugg].filter(x => {
+    const date = new Date(x.date);
+    return date >= monthStart && date <= monthEnd && x.bill;
+  });
+
+  // Group by project and client
+  const projectSummary = {};
+  monthData.forEach(entry => {
+    if (!projectSummary[entry.proj]) {
+      projectSummary[entry.proj] = {
+        hours: 0,
+        amount: 0,
+        entries: []
+      };
+    }
+    const hours = diffH(entry.start, entry.end);
+    const amount = euro(hours, entry.rate, entry.bill);
+    projectSummary[entry.proj].hours += hours;
+    projectSummary[entry.proj].amount += amount;
+    projectSummary[entry.proj].entries.push({
+      date: entry.date,
+      desc: entry.desc,
+      hours,
+      amount
+    });
+  });
+
+  // Generate CSV content
+  let csv = 'Project,Date,Description,Hours,Rate,Amount\n';
+  Object.entries(projectSummary).forEach(([proj, data]) => {
+    data.entries.forEach(entry => {
+      csv += `"${proj}","${entry.date}","${entry.desc}",${entry.hours.toFixed(1)},${data.amount/data.hours},${entry.amount.toFixed(2)}\n`;
+    });
+    // Add project total
+    csv += `"${proj} Total",,,"${data.hours.toFixed(1)}",,${data.amount.toFixed(2)}\n\n`;
+  });
+
+  // Create download link
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const month = monthStart.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  a.href = url;
+  a.download = `TimeRaven_${month.replace(' ','_')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
+
+function showChangelog() {
+  $('changelogOverlay').style.display = 'grid';
+}
+
+function closeChangelog() {
+  $('changelogOverlay').style.display = 'none';
+}
+
+function showGuide() {
+  $('guideOverlay').style.display = 'grid';
+}
+
+function closeGuide() {
+  $('guideOverlay').style.display = 'none';
+}
+
+/* ----- Data structures ----- */
+let sugg = [
+  // Today (if weekday)
+  {id:uid(),date:today(),start:"09:00",end:"12:00",desc:"Development",proj:"Acme",rate:120,bill:true},
+  {id:uid(),date:today(),start:"12:30",end:"16:30",desc:"Sprint planning & coding",proj:"Beta",rate:110,bill:true},
+  // Tomorrow (if weekday)
+  {id:uid(),date:new Date(Date.now()+DAY).toISOString().split('T')[0],start:"09:00",end:"11:30",desc:"Team meeting",proj:"Internal",rate:0,bill:false},
+  {id:uid(),date:new Date(Date.now()+DAY).toISOString().split('T')[0],start:"12:00",end:"17:00",desc:"Development",proj:"Acme",rate:120,bill:true}
+];
+
+let appr = [
+  // Week 1 (Mon-Fri)
+  {id:uid(),date:new Date(currentDate.getFullYear(),currentDate.getMonth(),1).toISOString().split('T')[0],start:"09:00",end:"17:00",desc:"Full development day",proj:"Acme",rate:120,bill:true},
+  {id:uid(),date:new Date(currentDate.getFullYear(),currentDate.getMonth(),2).toISOString().split('T')[0],start:"09:00",end:"16:30",desc:"System architecture",proj:"Beta",rate:110,bill:true},
+  {id:uid(),date:new Date(currentDate.getFullYear(),currentDate.getMonth(),3).toISOString().split('T')[0],start:"08:30",end:"16:30",desc:"Client implementation",proj:"Gamma",rate:130,bill:true},
+  {id:uid(),date:new Date(currentDate.getFullYear(),currentDate.getMonth(),4).toISOString().split('T')[0],start:"09:00",end:"17:00",desc:"Development & testing",proj:"Beta",rate:110,bill:true},
+  {id:uid(),date:new Date(currentDate.getFullYear(),currentDate.getMonth(),5).toISOString().split('T')[0],start:"09:00",end:"16:00",desc:"Documentation",proj:"Internal",rate:0,bill:false}
+];
+
+let rej = [];
+let editState = null;
+
+/* ----- HTML line builder ----- */
 function line(e,blk){
- const h=diffH(e.start,e.end),eur=euro(h,e.rate,e.bill).toFixed(0);
- const btns= blk==='s'
- ?`<button class="accept act" onclick="mv('s','a','${e.id}')">Accept</button>
-    <button class="reject act" onclick="mv('s','r','${e.id}')">Reject</button>`
- :blk==='a'
- ?`<button class="undo act"   onclick="mv('a','s','${e.id}')">Undo</button>
-    <button class="reject act" onclick="mv('a','r','${e.id}')">Reject</button>`
- :`<button class="undo act"   onclick="mv('r','s','${e.id}')">Undo</button>
-    <button class="accept act" onclick="mv('r','a','${e.id}')">Accept</button>`;
- return `<li class=item><div class=row>
-  <span style="flex:1">${e.start}-${e.end} • ${h.toFixed(1)}h • ${e.desc}
-    <span class="tag">${e.proj}</span>${e.bill?`<span class="tag bill">€${eur}</span>`:''}</span>
-  <span class=row>
-    ${btns}
-    <button class="edit" onclick="edit('${blk}','${e.id}')">✏️</button>
-    <button class="del"  onclick="del('${blk}','${e.id}')">🗑</button>
-  </span></div></li>`;
+  const h=diffH(e.start,e.end),eur=euro(h,e.rate,e.bill).toFixed(0);
+  const btns= blk==='s'
+    ?`<button class="accept act" onclick="mv('s','a','${e.id}')">Accept</button>
+       <button class="reject act" onclick="mv('s','r','${e.id}')">Reject</button>`
+    :blk==='a'
+    ?`<button class="undo act"   onclick="mv('a','s','${e.id}')">Undo</button>
+       <button class="reject act" onclick="mv('a','r','${e.id}')">Reject</button>`
+    :`<button class="undo act"   onclick="mv('r','s','${e.id}')">Undo</button>
+       <button class="accept act" onclick="mv('r','a','${e.id}')">Accept</button>`;
+  return `<li class=item>
+    <div class=date>${new Date(e.date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
+    <div class=row>
+      <span style="flex:1">${e.start}-${e.end} • ${h.toFixed(1)}h • ${e.desc}
+        <span class="tag">${e.proj}</span>${e.bill?`<span class="tag bill">€${eur}</span>`:''}</span>
+      <span class=row>
+        ${btns}
+        <button class="edit" onclick="edit('${blk}','${e.id}')">✏️</button>
+        <button class="del"  onclick="del('${blk}','${e.id}')">🗑</button>
+      </span>
+    </div>
+  </li>`;
 }
 
 /* ----- render ----- */
 function renderLists(){
- ulS.innerHTML=sugg.map(x=>line(x,'s')).join('');
- ulA.innerHTML=appr.map(x=>line(x,'a')).join('');
- ulR.innerHTML=rej .map(x=>line(x,'r')).join('');
-}
-function renderCal(){
- cal.innerHTML='';
- const start=monday(today());
- let wH=0,wEur=0;
- for(let i=0;i<7;i++){
-   const d=new Date(start.getTime()+DAY*i),ds=d.toISOString().split('T')[0];
-   const items=[...sugg,...appr].filter(x=>x.date===ds);
-   const h=items.reduce((a,b)=>a+diffH(b.start,b.end),0);
-   const eur=items.reduce((a,b)=>a+euro(diffH(b.start,b.end),b.rate,b.bill),0);
-   wH+=h;wEur+=eur;
-   const div=document.createElement('div');div.className='day '+(h>=TARGET?'ok':'warn');
-   div.innerHTML=`<div class=dayHeader><span>${d.toLocaleDateString('en-GB',{weekday:'short'})}</span><span>${ds}</span></div>
-   <ul class=dayList>${items.map(x=>`<li>${x.start}-${x.end} ${x.desc}${x.bill?' €'+euro(diffH(x.start,x.end),x.rate,x.bill).toFixed(0):''}</li>`).join('')}</ul>
-   <div class=tot>${h.toFixed(1)}h / €${eur.toFixed(0)}</div>`;
-   cal.appendChild(div);
- }
- wk.textContent=`Week total: ${wH.toFixed(1)}h  •  €${wEur.toFixed(0)}`;
+  ulS.innerHTML=sugg.map(x=>line(x,'s')).join('');
+  ulA.innerHTML=appr.map(x=>line(x,'a')).join('');
+  ulR.innerHTML=rej.map(x=>line(x,'r')).join('');
 }
 
-/* ----- data-toiminnot ----- */
+function renderCal(){
+  cal.innerHTML='';
+  const start=firstDayOfMonth(currentDate);
+  const end=lastDayOfMonth(currentDate);
+  
+  // Update month display
+  monthDisplay.textContent = start.toLocaleDateString('en-GB', {
+    month: 'long',
+    year: 'numeric'
+  });
+  
+  // Find the first Monday before the start of month
+  const firstMonday=new Date(start);
+  firstMonday.setDate(firstMonday.getDate() - ((firstMonday.getDay() + 6) % 7));
+  
+  let wH=0,wEur=0,mH=0,mEur=0;
+  let currentWeek=null;
+  
+  // Calculate how many days to show (including padding to complete weeks)
+  const totalDays = Math.ceil((end.getDate() + start.getDay() + 6) / 7) * 7;
+  
+  for(let i=0;i<totalDays;i++){
+    const d=new Date(firstMonday.getTime()+DAY*i);
+    const ds=d.toISOString().split('T')[0];
+    const items=[...sugg,...appr].filter(x=>x.date===ds);
+    const h=items.reduce((a,b)=>a+diffH(b.start,b.end),0);
+    const eur=items.reduce((a,b)=>a+euro(diffH(b.start,b.end),b.rate,b.bill),0);
+    
+    // Start new week
+    if(d.getDay()===1 || i===0){
+      currentWeek=document.createElement('div');
+      currentWeek.className='week';
+      cal.appendChild(currentWeek);
+      if(i>0){wH=0;wEur=0;} // Reset week totals except for first week
+    }
+    
+    // Add to totals
+    if(d.getMonth()===start.getMonth()){mH+=h;mEur+=eur;} // Only count days in current month
+    wH+=h;wEur+=eur;
+    
+    const div=document.createElement('div');
+    const isCurrentMonth=d.getMonth()===start.getMonth();
+    const isWeekend = d.getDay()===0 || d.getDay()===6;
+    const hasHours = items.length > 0;
+    div.className = `day ${isWeekend ? 'weekend' : (h>=TARGET?'ok':'warn')} ${isWeekend && hasHours ? 'has-hours' : ''} ${isCurrentMonth?'':'other-month'}`;
+    if(!isCurrentMonth) div.style.opacity='0.5';
+    
+    div.innerHTML=`<div class=dayHeader>
+      <span>${d.toLocaleDateString('en-GB',{weekday:'short'})}</span>
+      <span>${d.getDate()}</span>
+    </div>
+    <ul class=dayList>${items.map(x=>`
+      <li>
+        <span>${x.start}-${x.end} ${x.desc}${x.bill?' €'+euro(diffH(x.start,x.end),x.rate,x.bill).toFixed(0):''}</span>
+        ${x.id && (sugg.includes(x) || appr.includes(x))?`
+          <button class="edit" onclick="edit('${sugg.includes(x)?'s':'a'}','${x.id}')" style="font-size:14px">✏️</button>
+        `:''}
+      </li>`).join('')}</ul>
+    <div class=tot>${h.toFixed(1)}h / €${eur.toFixed(0)}</div>`;
+    
+    currentWeek.appendChild(div);
+    
+    // Update week total on Sunday
+    if(d.getDay()===0){
+      const weekTotal=document.createElement('div');
+      weekTotal.className='week-total';
+      weekTotal.style.gridColumn='1/-1';
+      weekTotal.style.textAlign='right';
+      weekTotal.style.padding='4px';
+      weekTotal.style.color='var(--blue)';
+      weekTotal.textContent=`Week total: ${wH.toFixed(1)}h • €${wEur.toFixed(0)}`;
+      currentWeek.appendChild(weekTotal);
+    }
+  }
+  
+  wk.textContent=`Current week: ${wH.toFixed(1)}h • €${wEur.toFixed(0)}`;
+  monthSummary.textContent=`Month total: ${mH.toFixed(1)}h • €${mEur.toFixed(0)}`;
+}
+
+/* ----- data operations ----- */
 window.mv=(from,to,id)=>{
   const src=from==='s'?sugg:from==='a'?appr:rej;
   const dst=to==='s'?sugg:to==='a'?appr:rej;
   const i=src.findIndex(x=>x.id===id); if(i>-1){dst.push(src[i]);src.splice(i,1);update();}
 };
+
 window.del=(blk,id)=>{
   const arr=blk==='s'?sugg:blk==='a'?appr:rej;
   const i=arr.findIndex(x=>x.id===id);if(i>-1&&confirm('Delete?')){arr.splice(i,1);update();}
 };
+
 window.edit=(blk,id)=>{
   editState={arr:blk==='s'?sugg:blk==='a'?appr:rej,id};
   const o=editState.arr.find(x=>x.id===id);
@@ -183,27 +1334,62 @@ window.edit=(blk,id)=>{
   overlay.style.display='grid';
 };
 
-/* ----- lomake ----- */
+/* ----- form ----- */
 function openNew(){
   editState=null;formTitle.textContent='New entry';
   fd.value=today();fs.value='09:00';fe.value='17:00';
   fdesc.value='';fproj.value='';frate.value=100;fbill.checked=true;
   overlay.style.display='grid';
 }
-function close(){overlay.style.display='none';}
-function save(){
-  const obj={id:editState?editState.id:uid(),date:fd.value,start:fs.value,end:fe.value,
-             desc:fdesc.value||'—',proj:fproj.value||'—',rate:+frate.value||0,bill:fbill.checked};
-  if(editState){
-    const i=editState.arr.findIndex(x=>x.id===editState.id);editState.arr[i]=obj;
-  }else{sugg.push(obj);}
-  close();update();
+
+function close(){
+  overlay.style.display='none';
 }
 
-/* ----- init ----- */
-function update(){renderLists();renderCal();}
-addBtn.onclick=openNew;cancelBtn.onclick=close;saveBtn.onclick=save;
-update();
+function save(){
+  const proj = fproj.value.trim() || '—';
+  const rate = projects[proj] ? projects[proj].rate : +frate.value || 0;
+  
+  const obj = {
+    id: editState ? editState.id : uid(),
+    date: fd.value,
+    start: fs.value,
+    end: fe.value,
+    desc: fdesc.value || '—',
+    proj: proj,
+    rate: rate,
+    bill: fbill.checked,
+    notes: $('fnotes').value.trim(),
+    attachments: Array.from(document.querySelectorAll('#attachmentList .attachment-chip'))
+                     .map(chip => chip.dataset.name)
+  };
+  
+  if(editState){
+    const i = editState.arr.findIndex(x => x.id === editState.id);
+    editState.arr[i] = obj;
+  } else {
+    sugg.push(obj);
+  }
+  
+  close();
+  update();
+}
+
+// Add project suggestions to form
+function setupProjectSuggestions() {
+  const datalist = document.createElement('datalist');
+  datalist.id = 'projectList';
+  document.body.appendChild(datalist);
+  fproj.setAttribute('list', 'projectList');
+  
+  function updateProjectList() {
+    datalist.innerHTML = Object.keys(projects)
+      .map(p => `<option value="${p}">`)
+      .join('');
+  }
+  
+  updateProjectList();
+}
 </script>
 </body>
 </html>
